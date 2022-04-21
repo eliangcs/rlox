@@ -1,4 +1,4 @@
-use crate::value::{Value, ValueArray};
+use crate::value::{Value};
 use num_enum::TryFromPrimitive;
 use std::ops::Index;
 use std::vec::Vec;
@@ -13,7 +13,7 @@ pub enum OpCode {
 pub struct Chunk {
     code: Vec<u8>,
     pub lines: Vec<usize>,
-    pub constants: ValueArray,
+    pub constants: Vec<Value>,
 }
 
 impl Chunk {
@@ -21,7 +21,7 @@ impl Chunk {
         Chunk {
             code: Vec::new(),
             lines: Vec::new(),
-            constants: ValueArray::new(),
+            constants: Vec::new(),
         }
     }
 
