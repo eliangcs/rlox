@@ -1,39 +1,70 @@
 mod chunk;
 mod common;
+mod compiler;
 mod debug;
+mod scanner;
 mod value;
 mod vm;
 
-use chunk::{Chunk, OpCode};
-use debug::disassemble_chunk;
+use chunk::Chunk;
+use std::env;
+use std::fs;
+use std::io;
+use std::io::{ErrorKind, Write};
+use std::process;
 use vm::VM;
+
+fn repl(vm: &mut VM) {
+    loop {
+        let mut buffer = String::new();
+        print!("> ");
+        io::stdout().flush().unwrap();
+        match io::stdin().read_line(&mut buffer) {
+            Ok(0) => {
+                println!();
+                break;
+            }
+            Ok(_) => unsafe {
+                vm.interpret(&buffer);
+            },
+            Err(error) => eprintln!("error: {}", error),
+        }
+    }
+}
+
+fn run_file(path: &str) {
+    match fs::read_to_string(path) {
+        Ok(contents) => {
+            println!("{}", contents);
+        }
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => {
+                eprintln!("File not found \"{}\"", path);
+                process::exit(74);
+            }
+            ErrorKind::PermissionDenied => {
+                eprintln!("Permission denied reading file \"{}\"", path);
+                process::exit(74);
+            }
+            _ => {
+                eprintln!("{}", error);
+                process::exit(74);
+            }
+        },
+    }
+}
 
 fn main() {
     let mut chunk = Chunk::new();
+    let mut vm = VM::new(&mut chunk);
 
-    let constant = chunk.add_constant(1.2);
-    chunk.write_chunk(OpCode::Constant as u8, 123);
-    chunk.write_chunk(constant as u8, 123);
-
-    let constant = chunk.add_constant(3.4);
-    chunk.write_chunk(OpCode::Constant as u8, 123);
-    chunk.write_chunk(constant as u8, 123);
-
-    chunk.write_chunk(OpCode::Add as u8, 123);
-
-    let constant = chunk.add_constant(5.6);
-    chunk.write_chunk(OpCode::Constant as u8, 123);
-    chunk.write_chunk(constant as u8, 123);
-
-    chunk.write_chunk(OpCode::Divide as u8, 123);
-
-    chunk.write_chunk(OpCode::Negate as u8, 123);
-    chunk.write_chunk(OpCode::Return as u8, 123);
-    chunk.write_chunk(200, 123);
-    disassemble_chunk(&chunk, "test chunk");
-
-    let mut vm = VM::new(&chunk);
-    unsafe {
-        vm.interpret();
+    let args: Vec<String> = env::args().collect();
+    match args.len() {
+        0 | 1 => repl(&mut vm),
+        2 => run_file(&args[1]),
+        _ => {
+            eprintln!("Usage: rlox [path]");
+            process::exit(64);
+        }
     }
 }

@@ -1,4 +1,5 @@
 use crate::chunk::{Chunk, OpCode};
+use crate::compiler::compile;
 use crate::debug::disassemble_instruction;
 use crate::value::Value;
 use std::ops::{Add, Div, Mul, Sub};
@@ -38,9 +39,9 @@ impl<'a> VM<'a> {
         self.stack_top = &mut self.stack[0] as *mut Value;
     }
 
-    pub unsafe fn interpret(&mut self) -> InterpretResult {
-        self.ip = &self.chunk[0] as *const u8;
-        self.run()
+    pub unsafe fn interpret(&mut self, source: &str) -> InterpretResult {
+        compile(source);
+        InterpretResult::Ok
     }
 
     unsafe fn push(&mut self, value: Value) {
