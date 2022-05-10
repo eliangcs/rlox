@@ -1,4 +1,4 @@
-# Yet Another Rust Impelementation of Lox
+# Yet Another Lox Impelementation in Rust
 
 ## Building
 
