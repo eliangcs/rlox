@@ -27,7 +27,7 @@ impl VM {
         let mut vm = VM {
             chunk: Chunk::new(),
             ip: ptr::null_mut(),
-            stack: [0.0; STACK_MAX],
+            stack: [Value::Nil; STACK_MAX],
             stack_top: ptr::null_mut(),
         };
         vm.reset_stack();
@@ -37,6 +37,16 @@ impl VM {
     #[inline]
     fn reset_stack(&mut self) {
         self.stack_top = &mut self.stack[0] as *mut Value;
+    }
+
+    unsafe fn runtime_error(&mut self, message: &str) {
+        eprintln!("{}", message);
+
+        let instruction = self.ip.offset_from(self.chunk[0] as *const u8) - 1;
+        let line = self.chunk.lines[instruction as usize];
+        eprintln!("[line {}] in script", line);
+
+        self.reset_stack();
     }
 
     pub unsafe fn interpret(&mut self, source: &str) -> InterpretResult {
@@ -64,6 +74,10 @@ impl VM {
         *self.stack_top
     }
 
+    unsafe fn peek(&self, distance: usize) -> Value {
+        *self.stack_top.offset(-1 - (distance as isize))
+    }
+
     unsafe fn run(&mut self) -> InterpretResult {
         loop {
             if cfg!(feature = "debug-trace-execution") {
@@ -87,14 +101,32 @@ impl VM {
                         let constant = self.read_constant();
                         self.push(constant);
                     }
-                    OpCode::Add => self.binary_op(&Add::add),
-                    OpCode::Subtract => self.binary_op(&Sub::sub),
-                    OpCode::Multiply => self.binary_op(&Mul::mul),
-                    OpCode::Divide => self.binary_op(&Div::div),
-                    OpCode::Negate => {
-                        let value = self.pop();
-                        self.push(-value);
-                    }
+                    OpCode::Add => match self.binary_op(&Add::add) {
+                        Err(err) => break err,
+                        _ => (),
+                    },
+                    OpCode::Subtract => match self.binary_op(&Sub::sub) {
+                        Err(err) => break err,
+                        _ => (),
+                    },
+                    OpCode::Multiply => match self.binary_op(&Mul::mul) {
+                        Err(err) => break err,
+                        _ => (),
+                    },
+                    OpCode::Divide => match self.binary_op(&Div::div) {
+                        Err(err) => break err,
+                        _ => (),
+                    },
+                    OpCode::Negate => match self.peek(0) {
+                        Value::Number(value) => {
+                            self.pop();
+                            self.push(Value::number(-value.number));
+                        }
+                        _ => {
+                            self.runtime_error("Operand must be a number.");
+                            break InterpretResult::RuntimeErr;
+                        }
+                    },
                     OpCode::Return => {
                         println!("{}", self.pop());
                         break InterpretResult::Ok;
@@ -106,10 +138,22 @@ impl VM {
     }
 
     #[inline]
-    unsafe fn binary_op(&mut self, op: &dyn Fn(Value, Value) -> Value) {
-        let b = self.pop();
-        let a = self.pop();
-        self.push(op(a, b));
+    unsafe fn binary_op<F>(&mut self, op: F) -> Result<(), InterpretResult>
+    where
+        F: Fn(f64, f64) -> f64,
+    {
+        let b = self.peek(0);
+        let a = self.peek(1);
+
+        if let (Value::Number(a), Value::Number(b)) = (a, b) {
+            self.pop();
+            self.pop();
+            self.push(Value::number(op(a.number, b.number)));
+            Ok(())
+        } else {
+            self.runtime_error("Operands must be numbers.");
+            Err(InterpretResult::RuntimeErr)
+        }
     }
 
     #[inline]

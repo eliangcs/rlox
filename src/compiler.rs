@@ -383,8 +383,8 @@ impl<'a> Parser<'a> {
     }
 
     fn number(&mut self) {
-        let value: Value = self.previous.value.parse().unwrap();
-        self.emit_constant(value);
+        let value: f64 = self.previous.value.parse().unwrap();
+        self.emit_constant(Value::number(value));
     }
 
     fn unary(&mut self) {
