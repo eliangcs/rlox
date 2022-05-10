@@ -1,16 +1,17 @@
+use std::cmp::PartialEq;
 use std::fmt;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct BoolValue {
     pub boolean: bool,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct NumberValue {
     pub number: f64,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Value {
     Nil,
     Bool(BoolValue),

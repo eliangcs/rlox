@@ -2,7 +2,6 @@ use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Parser;
 use crate::debug::disassemble_instruction;
 use crate::value::Value;
-use std::ops::{Add, Div, Mul, Sub};
 use std::ptr;
 
 const STACK_MAX: usize = 256;
@@ -19,6 +18,33 @@ pub enum InterpretResult {
     Ok,
     CompileErr,
     RuntimeErr,
+}
+
+macro_rules! binary_op {
+    ($parser: ident, $value_type: path, $operator: tt) => {
+        {
+            let b = $parser.peek(0);
+            let a = $parser.peek(1);
+
+            if let (Value::Number(a), Value::Number(b)) = (a, b) {
+                $parser.pop();
+                $parser.pop();
+                $parser.push($value_type(a.number $operator b.number));
+            } else {
+                $parser.runtime_error("Operands must be numbers.");
+                break InterpretResult::RuntimeErr
+            }
+        }
+    };
+}
+
+#[inline]
+fn is_falsey(value: Value) -> bool {
+    match value {
+        Value::Nil => true,
+        Value::Bool(value) => !value.boolean,
+        _ => false,
+    }
 }
 
 // TODO: Allocate vm as a global static instance
@@ -104,22 +130,21 @@ impl VM {
                     OpCode::Nil => self.push(Value::Nil),
                     OpCode::True => self.push(Value::boolean(true)),
                     OpCode::False => self.push(Value::boolean(false)),
-                    OpCode::Add => match self.binary_op(&Add::add) {
-                        Err(err) => break err,
-                        _ => (),
-                    },
-                    OpCode::Subtract => match self.binary_op(&Sub::sub) {
-                        Err(err) => break err,
-                        _ => (),
-                    },
-                    OpCode::Multiply => match self.binary_op(&Mul::mul) {
-                        Err(err) => break err,
-                        _ => (),
-                    },
-                    OpCode::Divide => match self.binary_op(&Div::div) {
-                        Err(err) => break err,
-                        _ => (),
-                    },
+                    OpCode::Equal => {
+                        let b = self.pop();
+                        let a = self.pop();
+                        self.push(Value::boolean(a == b));
+                    }
+                    OpCode::Greater => binary_op!(self, Value::boolean, >),
+                    OpCode::Less => binary_op!(self, Value::boolean, <),
+                    OpCode::Add => binary_op!(self, Value::number, +),
+                    OpCode::Subtract => binary_op!(self, Value::number, -),
+                    OpCode::Multiply => binary_op!(self, Value::number, *),
+                    OpCode::Divide => binary_op!(self, Value::number, /),
+                    OpCode::Not => {
+                        let value = self.pop();
+                        self.push(Value::boolean(is_falsey(value)));
+                    }
                     OpCode::Negate => match self.peek(0) {
                         Value::Number(value) => {
                             self.pop();
@@ -137,25 +162,6 @@ impl VM {
                 },
                 Err(_) => break InterpretResult::RuntimeErr,
             }
-        }
-    }
-
-    #[inline]
-    unsafe fn binary_op<F>(&mut self, op: F) -> Result<(), InterpretResult>
-    where
-        F: Fn(f64, f64) -> f64,
-    {
-        let b = self.peek(0);
-        let a = self.peek(1);
-
-        if let (Value::Number(a), Value::Number(b)) = (a, b) {
-            self.pop();
-            self.pop();
-            self.push(Value::number(op(a.number, b.number)));
-            Ok(())
-        } else {
-            self.runtime_error("Operands must be numbers.");
-            Err(InterpretResult::RuntimeErr)
         }
     }
 

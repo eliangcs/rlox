@@ -106,15 +106,15 @@ const RULES: [ParseRule; 40] = [
     },
     // [11] Bang
     ParseRule {
-        prefix: None,
+        prefix: Some(|p| Parser::unary(p)),
         infix: None,
         precedence: Precedence::None,
     },
     // [12] BangEqual
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Equality,
     },
     // [13] Equal
     ParseRule {
@@ -125,32 +125,32 @@ const RULES: [ParseRule; 40] = [
     // [14] EqualEqual
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Equality,
     },
     // [15] Greater
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Comparison,
     },
     // [16] GreaterEqual
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Comparison,
     },
     // [17] Less
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Comparison,
     },
     // [18] LessEqual
     ParseRule {
         prefix: None,
-        infix: None,
-        precedence: Precedence::None,
+        infix: Some(|p| Parser::binary(p)),
+        precedence: Precedence::Comparison,
     },
     // [19] Identifier
     ParseRule {
@@ -369,6 +369,12 @@ impl<'a> Parser<'a> {
         let rule = get_rule(operator_type);
         self.parse_precedence(Precedence::try_from(rule.precedence as u8 + 1).unwrap());
         match operator_type {
+            TokenType::BangEqual => self.emit_bytes(OpCode::Equal as u8, OpCode::Not as u8),
+            TokenType::EqualEqual => self.emit_byte(OpCode::Equal as u8),
+            TokenType::Greater => self.emit_byte(OpCode::Greater as u8),
+            TokenType::GreaterEqual => self.emit_bytes(OpCode::Less as u8, OpCode::Not as u8),
+            TokenType::Less => self.emit_byte(OpCode::Less as u8),
+            TokenType::LessEqual => self.emit_bytes(OpCode::Greater as u8, OpCode::Not as u8),
             TokenType::Plus => self.emit_byte(OpCode::Add as u8),
             TokenType::Minus => self.emit_byte(OpCode::Subtract as u8),
             TokenType::Star => self.emit_byte(OpCode::Multiply as u8),
@@ -403,6 +409,7 @@ impl<'a> Parser<'a> {
 
         // Emit the operator instruction
         match operator_type {
+            TokenType::Bang => self.emit_byte(OpCode::Not as u8),
             TokenType::Minus => self.emit_byte(OpCode::Negate as u8),
             _ => (), // unreachable
         }
