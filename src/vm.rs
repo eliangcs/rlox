@@ -101,6 +101,9 @@ impl VM {
                         let constant = self.read_constant();
                         self.push(constant);
                     }
+                    OpCode::Nil => self.push(Value::Nil),
+                    OpCode::True => self.push(Value::boolean(true)),
+                    OpCode::False => self.push(Value::boolean(false)),
                     OpCode::Add => match self.binary_op(&Add::add) {
                         Err(err) => break err,
                         _ => (),

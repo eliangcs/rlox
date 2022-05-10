@@ -18,10 +18,6 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn nil() -> Self {
-        Value::Nil
-    }
-
     pub fn boolean(value: bool) -> Self {
         Value::Bool(BoolValue { boolean: value })
     }

@@ -7,6 +7,9 @@ use std::vec::Vec;
 #[repr(u8)]
 pub enum OpCode {
     Constant,
+    Nil,
+    True,
+    False,
     Add,
     Subtract,
     Multiply,

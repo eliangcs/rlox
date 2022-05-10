@@ -190,7 +190,7 @@ const RULES: [ParseRule; 40] = [
     },
     // [25] False
     ParseRule {
-        prefix: None,
+        prefix: Some(|p| Parser::literal(p)),
         infix: None,
         precedence: Precedence::None,
     },
@@ -214,7 +214,7 @@ const RULES: [ParseRule; 40] = [
     },
     // [29] Nil
     ParseRule {
-        prefix: None,
+        prefix: Some(|p| Parser::literal(p)),
         infix: None,
         precedence: Precedence::None,
     },
@@ -250,7 +250,7 @@ const RULES: [ParseRule; 40] = [
     },
     // [35] True
     ParseRule {
-        prefix: None,
+        prefix: Some(|p| Parser::literal(p)),
         infix: None,
         precedence: Precedence::None,
     },
@@ -373,6 +373,15 @@ impl<'a> Parser<'a> {
             TokenType::Minus => self.emit_byte(OpCode::Subtract as u8),
             TokenType::Star => self.emit_byte(OpCode::Multiply as u8),
             TokenType::Slash => self.emit_byte(OpCode::Divide as u8),
+            _ => (), // unreachable
+        }
+    }
+
+    fn literal(&mut self) {
+        match self.previous.token_type {
+            TokenType::False => self.emit_byte(OpCode::False as u8),
+            TokenType::Nil => self.emit_byte(OpCode::Nil as u8),
+            TokenType::True => self.emit_byte(OpCode::True as u8),
             _ => (), // unreachable
         }
     }

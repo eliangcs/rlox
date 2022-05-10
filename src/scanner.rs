@@ -171,9 +171,9 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn check_keyword(&self, rest: &str, token_type: TokenType) -> Token<'a> {
-        let token_type = if self.current - self.start == rest.len()
-            && &self.source[self.start..self.current + 1] == rest
+    fn check_keyword(&self, start: usize, rest: &str, token_type: TokenType) -> Token<'a> {
+        let token_type = if self.current - self.start == start + rest.len()
+            && &self.source[self.start + start..self.current] == rest
         {
             token_type
         } else {
@@ -185,40 +185,40 @@ impl<'a> Scanner<'a> {
     fn identifier_type(&self) -> Token<'a> {
         let bytes = self.source.as_bytes();
         match bytes[self.start] {
-            b'a' => self.check_keyword("nd", TokenType::And),
-            b'c' => self.check_keyword("lass", TokenType::Class),
-            b'e' => self.check_keyword("lse", TokenType::Else),
+            b'a' => self.check_keyword(1, "nd", TokenType::And),
+            b'c' => self.check_keyword(1, "lass", TokenType::Class),
+            b'e' => self.check_keyword(1, "lse", TokenType::Else),
             b'f' => {
                 if self.current - self.start > 1 {
                     match bytes[self.start + 1] {
-                        b'a' => self.check_keyword("lse", TokenType::False),
-                        b'o' => self.check_keyword("r", TokenType::False),
-                        b'u' => self.check_keyword("n", TokenType::Fun),
+                        b'a' => self.check_keyword(2, "lse", TokenType::False),
+                        b'o' => self.check_keyword(2, "r", TokenType::False),
+                        b'u' => self.check_keyword(2, "n", TokenType::Fun),
                         _ => self.make_token(TokenType::Identifier),
                     }
                 } else {
                     self.make_token(TokenType::Identifier)
                 }
             }
-            b'i' => self.check_keyword("f", TokenType::If),
-            b'n' => self.check_keyword("il", TokenType::Nil),
-            b'o' => self.check_keyword("r", TokenType::Or),
-            b'p' => self.check_keyword("rint", TokenType::Print),
-            b'r' => self.check_keyword("eturn", TokenType::Return),
-            b's' => self.check_keyword("uper", TokenType::Super),
+            b'i' => self.check_keyword(1, "f", TokenType::If),
+            b'n' => self.check_keyword(1, "il", TokenType::Nil),
+            b'o' => self.check_keyword(1, "r", TokenType::Or),
+            b'p' => self.check_keyword(1, "rint", TokenType::Print),
+            b'r' => self.check_keyword(1, "eturn", TokenType::Return),
+            b's' => self.check_keyword(1, "uper", TokenType::Super),
             b't' => {
                 if self.current - self.start > 1 {
                     match bytes[self.start + 1] {
-                        b'h' => self.check_keyword("is", TokenType::This),
-                        b'r' => self.check_keyword("ue", TokenType::True),
+                        b'h' => self.check_keyword(2, "is", TokenType::This),
+                        b'r' => self.check_keyword(2, "ue", TokenType::True),
                         _ => self.make_token(TokenType::Identifier),
                     }
                 } else {
                     self.make_token(TokenType::Identifier)
                 }
             }
-            b'v' => self.check_keyword("ar", TokenType::Var),
-            b'w' => self.check_keyword("hile", TokenType::While),
+            b'v' => self.check_keyword(1, "ar", TokenType::Var),
+            b'w' => self.check_keyword(1, "hile", TokenType::While),
             _ => self.make_token(TokenType::Identifier),
         }
     }
