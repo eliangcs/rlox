@@ -6,13 +6,12 @@ mod scanner;
 mod value;
 mod vm;
 
-use chunk::Chunk;
 use std::env;
 use std::fs;
 use std::io;
 use std::io::{ErrorKind, Write};
 use std::process;
-use vm::VM;
+use vm::{InterpretResult, VM};
 
 fn repl(vm: &mut VM) {
     loop {
@@ -32,11 +31,15 @@ fn repl(vm: &mut VM) {
     }
 }
 
-fn run_file(path: &str) {
+fn run_file(vm: &mut VM, path: &str) {
     match fs::read_to_string(path) {
-        Ok(contents) => {
-            println!("{}", contents);
-        }
+        Ok(contents) => unsafe {
+            match vm.interpret(&contents) {
+                InterpretResult::CompileErr => process::exit(65),
+                InterpretResult::RuntimeErr => process::exit(70),
+                _ => (),
+            }
+        },
         Err(error) => match error.kind() {
             ErrorKind::NotFound => {
                 eprintln!("File not found \"{}\"", path);
@@ -55,13 +58,12 @@ fn run_file(path: &str) {
 }
 
 fn main() {
-    let mut chunk = Chunk::new();
-    let mut vm = VM::new(&mut chunk);
+    let mut vm = VM::new();
 
     let args: Vec<String> = env::args().collect();
     match args.len() {
         0 | 1 => repl(&mut vm),
-        2 => run_file(&args[1]),
+        2 => run_file(&mut vm, &args[1]),
         _ => {
             eprintln!("Usage: rlox [path]");
             process::exit(64);

@@ -1,5 +1,5 @@
 use crate::chunk::{Chunk, OpCode};
-use crate::compiler::compile;
+use crate::compiler::Parser;
 use crate::debug::disassemble_instruction;
 use crate::value::Value;
 use std::ops::{Add, Div, Mul, Sub};
@@ -7,8 +7,8 @@ use std::ptr;
 
 const STACK_MAX: usize = 256;
 
-pub struct VM<'a> {
-    chunk: &'a Chunk,
+pub struct VM {
+    chunk: Chunk,
     ip: *const u8,
     stack: [Value; STACK_MAX],
     stack_top: *mut Value,
@@ -22,10 +22,10 @@ pub enum InterpretResult {
 }
 
 // TODO: Allocate vm as a global static instance
-impl<'a> VM<'a> {
-    pub fn new(chunk: &'a Chunk) -> Self {
+impl VM {
+    pub fn new() -> Self {
         let mut vm = VM {
-            chunk: chunk,
+            chunk: Chunk::new(),
             ip: ptr::null_mut(),
             stack: [0.0; STACK_MAX],
             stack_top: ptr::null_mut(),
@@ -40,8 +40,18 @@ impl<'a> VM<'a> {
     }
 
     pub unsafe fn interpret(&mut self, source: &str) -> InterpretResult {
-        compile(source);
-        InterpretResult::Ok
+        let mut parser = Parser::new(source, &mut self.chunk);
+        if !parser.compile() {
+            self.chunk.clear();
+            return InterpretResult::CompileErr;
+        }
+
+        self.ip = &self.chunk[0] as *const u8;
+
+        let result = self.run();
+
+        self.chunk.clear();
+        result
     }
 
     unsafe fn push(&mut self, value: Value) {
@@ -66,7 +76,7 @@ impl<'a> VM<'a> {
                 println!();
 
                 disassemble_instruction(
-                    self.chunk,
+                    &self.chunk,
                     self.ip.offset_from(&self.chunk[0] as *const u8) as usize,
                 );
             }
@@ -104,7 +114,8 @@ impl<'a> VM<'a> {
 
     #[inline]
     unsafe fn read_constant(&mut self) -> Value {
-        self.chunk.constants[self.read_byte() as usize]
+        let constant = self.read_byte() as usize;
+        self.chunk.constants[constant]
     }
 
     #[inline]

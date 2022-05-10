@@ -9,4 +9,6 @@ edition = "2021"
 num_enum = "0.5.7"
 
 [features]
+debug = ["debug-print-code", "debug-trace-execution"]
+debug-print-code = []
 debug-trace-execution = []

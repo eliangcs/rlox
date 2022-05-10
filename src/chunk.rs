@@ -1,4 +1,4 @@
-use crate::value::{Value};
+use crate::value::Value;
 use num_enum::TryFromPrimitive;
 use std::ops::Index;
 use std::vec::Vec;
@@ -42,6 +42,12 @@ impl Chunk {
     pub fn add_constant(&mut self, value: Value) -> usize {
         self.constants.push(value);
         self.constants.len() - 1
+    }
+
+    pub fn clear(&mut self) {
+        self.code.clear();
+        self.lines.clear();
+        self.constants.clear();
     }
 }
 
