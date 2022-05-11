@@ -399,7 +399,7 @@ impl<'a> Parser<'a> {
 
     fn number(&mut self) {
         let value: f64 = self.previous.value.parse().unwrap();
-        self.emit_constant(Value::number(value));
+        self.emit_constant(Value::Number(value));
     }
 
     fn unary(&mut self) {

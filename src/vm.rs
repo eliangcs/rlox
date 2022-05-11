@@ -29,7 +29,7 @@ macro_rules! binary_op {
             if let (Value::Number(a), Value::Number(b)) = (a, b) {
                 $parser.pop();
                 $parser.pop();
-                $parser.push($value_type(a.number $operator b.number));
+                $parser.push($value_type(a $operator b));
             } else {
                 $parser.runtime_error("Operands must be numbers.");
                 break InterpretResult::RuntimeErr
@@ -42,7 +42,7 @@ macro_rules! binary_op {
 fn is_falsey(value: Value) -> bool {
     match value {
         Value::Nil => true,
-        Value::Bool(value) => !value.boolean,
+        Value::Bool(value) => !value,
         _ => false,
     }
 }
@@ -128,27 +128,27 @@ impl VM {
                         self.push(constant);
                     }
                     OpCode::Nil => self.push(Value::Nil),
-                    OpCode::True => self.push(Value::boolean(true)),
-                    OpCode::False => self.push(Value::boolean(false)),
+                    OpCode::True => self.push(Value::Bool(true)),
+                    OpCode::False => self.push(Value::Bool(false)),
                     OpCode::Equal => {
                         let b = self.pop();
                         let a = self.pop();
-                        self.push(Value::boolean(a == b));
+                        self.push(Value::Bool(a == b));
                     }
-                    OpCode::Greater => binary_op!(self, Value::boolean, >),
-                    OpCode::Less => binary_op!(self, Value::boolean, <),
-                    OpCode::Add => binary_op!(self, Value::number, +),
-                    OpCode::Subtract => binary_op!(self, Value::number, -),
-                    OpCode::Multiply => binary_op!(self, Value::number, *),
-                    OpCode::Divide => binary_op!(self, Value::number, /),
+                    OpCode::Greater => binary_op!(self, Value::Bool, >),
+                    OpCode::Less => binary_op!(self, Value::Bool, <),
+                    OpCode::Add => binary_op!(self, Value::Number, +),
+                    OpCode::Subtract => binary_op!(self, Value::Number, -),
+                    OpCode::Multiply => binary_op!(self, Value::Number, *),
+                    OpCode::Divide => binary_op!(self, Value::Number, /),
                     OpCode::Not => {
                         let value = self.pop();
-                        self.push(Value::boolean(is_falsey(value)));
+                        self.push(Value::Bool(is_falsey(value)));
                     }
                     OpCode::Negate => match self.peek(0) {
                         Value::Number(value) => {
                             self.pop();
-                            self.push(Value::number(-value.number));
+                            self.push(Value::Number(-value));
                         }
                         _ => {
                             self.runtime_error("Operand must be a number.");
