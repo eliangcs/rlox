@@ -71,7 +71,7 @@ impl VM {
     unsafe fn runtime_error(&mut self, message: &str) {
         eprintln!("{}", message);
 
-        let instruction = self.ip.offset_from(self.chunk[0] as *const u8) - 1;
+        let instruction = self.ip.offset_from(&self.chunk[0] as *const u8) - 1;
         let line = self.chunk.lines[instruction as usize];
         eprintln!("[line {}] in script", line);
 
