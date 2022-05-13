@@ -1,4 +1,3 @@
-use std::cmp::PartialEq;
 use std::fmt;
 
 #[derive(Copy, Clone, PartialEq)]
