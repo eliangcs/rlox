@@ -11,6 +11,7 @@ pub struct Parser<'a> {
     had_error: bool,
     panic_mode: bool,
     chunk: &'a mut Chunk,
+    all_strings: Vec<String>,
 }
 
 #[derive(Copy, Clone, PartialEq, PartialOrd, TryFromPrimitive)]
@@ -160,7 +161,7 @@ const RULES: [ParseRule; 40] = [
     },
     // [20] String
     ParseRule {
-        prefix: None,
+        prefix: Some(|p| Parser::string(p)),
         infix: None,
         precedence: Precedence::None,
     },
@@ -298,6 +299,7 @@ impl<'a> Parser<'a> {
             had_error: false,
             panic_mode: false,
             chunk: chunk,
+            all_strings: Vec::new(),
         }
     }
 
@@ -400,6 +402,18 @@ impl<'a> Parser<'a> {
     fn number(&mut self) {
         let value: f64 = self.previous.value.parse().unwrap();
         self.emit_constant(Value::Number(value));
+    }
+
+    fn string(&mut self) {
+        let len = self.previous.value.len();
+
+        // Remove heading and trailing quotation marks
+        let new_string = String::from(&self.previous.value[1..len - 1]);
+
+        self.emit_constant(Value::string(new_string.as_ptr(), len - 2));
+
+        // Make sure new_string has an owner
+        self.all_strings.push(new_string);
     }
 
     fn unary(&mut self) {

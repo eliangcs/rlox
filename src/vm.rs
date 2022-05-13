@@ -1,6 +1,7 @@
 use crate::chunk::{Chunk, OpCode};
 use crate::compiler::Parser;
 use crate::debug::disassemble_instruction;
+use crate::object::{Obj, StringObj};
 use crate::value::Value;
 use std::ptr;
 
@@ -11,6 +12,7 @@ pub struct VM {
     ip: *const u8,
     stack: [Value; STACK_MAX],
     stack_top: *mut Value,
+    all_strings: Vec<String>,
 }
 
 #[repr(u8)]
@@ -55,6 +57,7 @@ impl VM {
             ip: ptr::null_mut(),
             stack: [Value::Nil; STACK_MAX],
             stack_top: ptr::null_mut(),
+            all_strings: Vec::new(),
         };
         vm.reset_stack();
         vm
@@ -137,7 +140,25 @@ impl VM {
                     }
                     OpCode::Greater => binary_op!(self, Value::Bool, >),
                     OpCode::Less => binary_op!(self, Value::Bool, <),
-                    OpCode::Add => binary_op!(self, Value::Number, +),
+                    OpCode::Add => {
+                        let b = self.peek(0);
+                        let a = self.peek(1);
+
+                        match (a, b) {
+                            (Value::Number(a), Value::Number(b)) => {
+                                self.pop();
+                                self.pop();
+                                self.push(Value::Number(a + b));
+                            }
+                            (Value::Obj(Obj::StringObj(a)), Value::Obj(Obj::StringObj(b))) => {
+                                self.concatenate(a, b)
+                            }
+                            _ => {
+                                self.runtime_error("Operands must be two numbers or two strings.");
+                                break InterpretResult::RuntimeErr;
+                            }
+                        }
+                    }
                     OpCode::Subtract => binary_op!(self, Value::Number, -),
                     OpCode::Multiply => binary_op!(self, Value::Number, *),
                     OpCode::Divide => binary_op!(self, Value::Number, /),
@@ -163,6 +184,17 @@ impl VM {
                 Err(_) => break InterpretResult::RuntimeErr,
             }
         }
+    }
+
+    unsafe fn concatenate(&mut self, a: StringObj, b: StringObj) {
+        self.pop();
+        self.pop();
+
+        let result = String::from(a.as_str()) + b.as_str();
+        self.push(Value::string(result.as_ptr(), result.len()));
+
+        // Make sure result has an owner
+        self.all_strings.push(result);
     }
 
     #[inline]
